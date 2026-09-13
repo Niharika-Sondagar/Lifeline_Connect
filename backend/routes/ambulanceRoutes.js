@@ -4,7 +4,7 @@ const {
   getAmbulance,
   updateAmbulanceStatus,
   updateAmbulanceLocation,
-} = require("../controllers/ambulanceController");
+} = require("../Controllers/ambulanceController");
 
 const router = express.Router();
 

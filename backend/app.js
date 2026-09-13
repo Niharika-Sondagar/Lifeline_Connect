@@ -6,7 +6,6 @@ const connectDB = require("./config/db");
 
 const authRoutes = require("./routes/authRoutes");
 const patientRoutes = require("./routes/patientRoutes");
-const doctorRoutes = require("./routes/doctorRoutes");
 const hospitalRoutes = require("./routes/hospitalRoutes");
 const ambulanceRoutes = require("./routes/ambulanceRoutes");
 const emergencyRoutes = require("./routes/emergencyRoutes");

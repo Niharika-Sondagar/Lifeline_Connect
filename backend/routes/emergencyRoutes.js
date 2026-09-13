@@ -7,7 +7,7 @@ const {
   updateEmergencyStatus,
   assignAmbulance,
   cancelEmergency,
-} = require("../controllers/emergencyController");
+} = require("../Controllers/emergencyController");
 
 const router = express.Router();
 
