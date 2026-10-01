@@ -4,12 +4,12 @@ const cors = require("cors");
 
 const connectDB = require("./backend/config/db");
 
-const authRoutes = require("./backend/routs/authRoutes");
-const patientRoutes = require("./backend/routs/patientRoutes");
-const hospitalRoutes = require("./backend/routs/hospitalRoutes");
-const ambulanceRoutes = require("./backend/routs/ambulanceRoutes");
-const emergencyRoutes = require("./backend/routs/emergencyRoutes");
-const locationRoutes = require("./backend/routs/locationRoutes");
+const authRoutes = require("./backend/routes/authRoutes");
+const patientRoutes = require("./backend/routes/patientRoutes");
+const hospitalRoutes = require("./backend/routes/hospitalRoutes");
+const ambulanceRoutes = require("./backend/routes/ambulanceRoutes");
+const emergencyRoutes = require("./backend/routes/emergencyRoutes");
+const locationRoutes = require("./backend/routes/locationRoutes");
 
 dotenv.config();
 connectDB();

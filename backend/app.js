@@ -9,6 +9,7 @@ const patientRoutes = require("./routes/patientRoutes");
 const hospitalRoutes = require("./routes/hospitalRoutes");
 const ambulanceRoutes = require("./routes/ambulanceRoutes");
 const emergencyRoutes = require("./routes/emergencyRoutes");
+const locationRoutes = require("./routes/locationRoutes");
 
 dotenv.config();
 
@@ -22,10 +23,10 @@ app.use(express.json());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/patients", patientRoutes);
-app.use("/api/doctors", doctorRoutes);
 app.use("/api/hospitals", hospitalRoutes);
 app.use("/api/ambulances", ambulanceRoutes);
 app.use("/api/emergencies", emergencyRoutes);
+app.use("/api/location", locationRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hospital Emergency Management API is running");

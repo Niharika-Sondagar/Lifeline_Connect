@@ -25,10 +25,6 @@ import {
   Activity,
   Building2,
 } from "lucide-react";
-import {
-    startLocationTracking,
-    stopLocationTracking
-} from "../services/locationService";
 export default function DriverDashboard() {
   const { user } = useAuth();
   const [assignedAmbulance, setAssignedAmbulance] = useState(null);
