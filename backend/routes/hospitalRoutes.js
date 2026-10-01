@@ -4,9 +4,13 @@ const {
   getHospitalProfile,
   updateHospitalProfile,
   getEmergencyRequests,
-} = require("../controllers/hospitalController");
+  getAllHospitals,
+} = require("../Controllers/hospitalController");
 
 const router = express.Router();
+
+// Get all hospitals
+router.get("/", getAllHospitals);
 
 // Get hospital profile
 router.get("/profile/:id", getHospitalProfile);

@@ -4,14 +4,14 @@ const cors = require("cors");
 
 const connectDB = require("./backend/config/db");
 
-const authRoutes = require("./backend/routes/authRoutes");
-const patientRoutes = require("./backend/routes/patientRoutes");
-const hospitalRoutes = require("./backend/routes/hospitalRoutes");
-const ambulanceRoutes = require("./backend/routes/ambulanceRoutes");
-const emergencyRoutes = require("./backend/routes/emergencyRoutes");
+const authRoutes = require("./backend/routs/authRoutes");
+const patientRoutes = require("./backend/routs/patientRoutes");
+const hospitalRoutes = require("./backend/routs/hospitalRoutes");
+const ambulanceRoutes = require("./backend/routs/ambulanceRoutes");
+const emergencyRoutes = require("./backend/routs/emergencyRoutes");
+const locationRoutes = require("./backend/routs/locationRoutes");
 
 dotenv.config();
-
 connectDB();
 
 const app = express();
@@ -25,6 +25,7 @@ app.use("/api/patients", patientRoutes);
 app.use("/api/hospitals", hospitalRoutes);
 app.use("/api/ambulances", ambulanceRoutes);
 app.use("/api/emergencies", emergencyRoutes);
+app.use("/api/location", locationRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hospital Emergency Management API is running");

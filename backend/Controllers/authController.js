@@ -1,7 +1,7 @@
 const User = require("../models/User");
 const Hospital = require("../models/Hospital");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs"); //hash password
+const jwt = require("jsonwebtoken"); //
 
 // ===============================
 // REGISTER USER
@@ -48,7 +48,7 @@ const register = async (req, res) => {
         address,
         phone,
         location: {
-          type: "Point",
+          type: "Point", //Point defines this field must contain standard geoJson type
           coordinates: [72.5714, 23.0225],
         },
         user: user._id,
@@ -135,6 +135,16 @@ const login = async (req, res) => {
       },
     );
 
+    let hospital = null;
+    let ambulance = null;
+
+    if (user.role === "hospital") {
+      hospital = await Hospital.findOne({ user: user._id });
+    } else if (user.role === "driver") {
+      const Ambulance = require("../models/Ambulance");
+      ambulance = await Ambulance.findOne({ driver: user._id });
+    }
+
     res.status(200).json({
       message: "Login successful",
       token,
@@ -144,6 +154,10 @@ const login = async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        address: user.address,
+        emergencyContact: user.emergencyContact,
+        hospitalId: hospital ? hospital._id : null,
+        ambulanceId: ambulance ? ambulance._id : null,
       },
     });
   } catch (error) {
