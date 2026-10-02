@@ -91,36 +91,81 @@ export default function DriverDashboard() {
     return () => clearInterval(interval);
   }, [user?.id]);
 
-  // Simulated GPS Beacon update every 12 seconds when active mission exists
-  useEffect(() => {
-    if (!broadcastingGps || !assignedAmbulance?._id || !activeEmergency) return;
+// ==========================================
+// REAL GPS TRACKING
+// ==========================================
+useEffect(() => {
+  if (!broadcastingGps || !assignedAmbulance?._id) {
+    return;
+  }
 
-    const beaconTimer = setInterval(async () => {
+  if (!("geolocation" in navigator)) {
+    console.warn("Geolocation is not supported by this browser.");
+    return;
+  }
+
+  console.log("📍 Starting real GPS tracking...");
+
+  const watchId = navigator.geolocation.watchPosition(
+    async (position) => {
       try {
-        // Move coordinates slightly toward patient location
-        const targetLng =
-          activeEmergency.patientLocation?.coordinates?.[0] || 72.5714;
-        const targetLat =
-          activeEmergency.patientLocation?.coordinates?.[1] || 23.0225;
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
 
-        setDriverCoords((prev) => {
-          const nextLng = prev[0] + (targetLng - prev[0]) * 0.15;
-          const nextLat = prev[1] + (targetLat - prev[1]) * 0.15;
-          // Send to server
-          updateAmbulanceLocation(
-            assignedAmbulance._id,
-            nextLat,
-            nextLng,
-          ).catch(() => {});
-          return [nextLng, nextLat];
+        console.log("📍 Driver GPS:", {
+          latitude,
+          longitude,
         });
-      } catch (err) {
-        console.warn("Beacon update error:", err);
-      }
-    }, 10000);
 
-    return () => clearInterval(beaconTimer);
-  }, [broadcastingGps, assignedAmbulance?._id, activeEmergency]);
+        // Store coordinates in frontend
+        // GeoJSON format: [longitude, latitude]
+        setDriverCoords([longitude, latitude]);
+
+        // Send real GPS location to backend
+        await updateAmbulanceLocation(
+          assignedAmbulance._id,
+          latitude,
+          longitude
+        );
+
+        console.log("✅ Ambulance location updated");
+      } catch (error) {
+        console.error(
+          "Failed to update ambulance GPS location:",
+          error
+        );
+      }
+    },
+    (error) => {
+      console.error("❌ GPS error:", error);
+
+      if (error.code === 1) {
+        console.warn(
+          "Location permission was denied by the driver."
+        );
+      } else if (error.code === 2) {
+        console.warn(
+          "Driver location is currently unavailable."
+        );
+      } else if (error.code === 3) {
+        console.warn("GPS request timed out.");
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 5000,
+    }
+  );
+
+  // Stop GPS tracking when component is removed
+  // or tracking is disabled
+  return () => {
+    console.log("🛑 Stopping GPS tracking...");
+    navigator.geolocation.clearWatch(watchId);
+  };
+}, [broadcastingGps, assignedAmbulance?._id]);
+
 
   // Transition Emergency Status
   const handleTransitionStatus = async (newStatus) => {

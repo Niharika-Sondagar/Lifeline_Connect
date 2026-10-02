@@ -5,28 +5,36 @@ const {
   getAllEmergencies,
   getEmergencyById,
   updateEmergencyStatus,
+  acceptAndAssignAmbulance,
   assignAmbulance,
   cancelEmergency,
 } = require("../Controllers/emergencyController");
 
 const router = express.Router();
 
-// Create emergency request
+// Create emergency
 router.post("/", createEmergency);
 
-// Get all emergency requests
+// Get emergencies
 router.get("/", getAllEmergencies);
 
-// Get emergency request by ID
+// Get single emergency
 router.get("/:id", getEmergencyById);
+
+// Accept emergency + automatically assign ambulance
+router.put(
+  "/:id/accept-and-assign",
+  acceptAndAssignAmbulance
+);
 
 // Update emergency status
 router.put("/:id/status", updateEmergencyStatus);
 
-// Assign ambulance to emergency
+// Manually assign ambulance
 router.put("/:id/assign-ambulance", assignAmbulance);
 
 // Cancel emergency
 router.put("/:id/cancel", cancelEmergency);
 
 module.exports = router;
+
