@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+// useState:-  Stores changing data
+// useEffect:- performs actions when something changes / when the page loads.
 
 import LocationMap from "../components/LocationMap";
 import { useAuth } from "../context/AuthContext";
@@ -33,7 +35,7 @@ import {
   CheckCircle,
   X,
   Hospital,
-} from "lucide-react";
+} from "lucide-react"; // importing ICONS
 const EMERGENCY_TYPES = [
   {
     id: "Cardiac Arrest / Chest Pain",
@@ -64,8 +66,8 @@ const EMERGENCY_TYPES = [
     id: "General Critical Illness",
     label: "Critical Illness",
     icon: Stethoscope,
-  },
-];
+  }, // to create buttons for different emergency types with icons
+ ];
 
 export default function PatientDashboard() {
   const { user, updateUser } = useAuth();
@@ -123,9 +125,6 @@ export default function PatientDashboard() {
     user?.emergencyContact?.relation || ""
   );
 
-  // =========================================================
-  // FETCH HOSPITALS + EMERGENCIES
-  // =========================================================
 
   const fetchData = async () => {
   console.log("🚑 PATIENT fetchData() RUNNING");
@@ -138,16 +137,9 @@ export default function PatientDashboard() {
           hospitals: [],
         })),
       ]);
-
-      const list = emRes.emergencies || [];
-
-      // ==========================================
-      // DEBUG EMERGENCY + AMBULANCE DATA
-      // ==========================================
-
-      console.log("🚨 EMERGENCIES:", list);
-
-      const active = list.find(
+       const list = emRes.emergencies || [];
+        console.log("🚨 EMERGENCIES:", list);
+  const active = list.find(
         (e) =>
           !["completed", "cancelled", "rejected"].includes(e.status)
       );
@@ -161,9 +153,6 @@ export default function PatientDashboard() {
         active?.ambulance?.currentLocation
       );
 
-      // ==========================================
-      // UPDATE STATE
-      // ==========================================
 
       setEmergencies(list);
 
@@ -171,9 +160,6 @@ export default function PatientDashboard() {
 
       setHospitals(hospRes.hospitals || []);
 
-      // ==========================================
-      // SHOW AMBULANCE GPS IN CONSOLE
-      // ==========================================
 
       if (active?.ambulance?.currentLocation?.coordinates) {
         console.log(
@@ -197,9 +183,6 @@ export default function PatientDashboard() {
     fetchData();
   }, [user?.id]);
 
-  // =========================================================
-  // POLL ACTIVE EMERGENCY
-  // =========================================================
 
   useEffect(() => {
     if (!activeEmergency) return;
@@ -209,9 +192,6 @@ export default function PatientDashboard() {
     return () => clearInterval(interval);
   }, [activeEmergency?._id, activeEmergency?.status]);
 
-  // =========================================================
-  // DETECT CURRENT GPS
-  // =========================================================
 
   const handleDetectGPS = () => {
     if (!("geolocation" in navigator)) {
@@ -258,10 +238,6 @@ export default function PatientDashboard() {
     );
   };
 
-  // =========================================================
-  // FIND NEARBY HOSPITALS
-  // =========================================================
-
   const handleFindNearbyHospitals = async () => {
     try {
       setLoadingNearbyHospitals(true);
@@ -295,10 +271,6 @@ export default function PatientDashboard() {
       setLoadingNearbyHospitals(false);
     }
   };
-
-  // =========================================================
-  // SUBMIT SOS EMERGENCY
-  // =========================================================
 
   const handleSOSSubmit = async (e) => {
     if (e) {
@@ -350,9 +322,6 @@ export default function PatientDashboard() {
     }
   };
 
-  // =========================================================
-  // CANCEL EMERGENCY
-  // =========================================================
 
   const handleCancel = async () => {
     if (!activeEmergency) return;
@@ -379,9 +348,6 @@ export default function PatientDashboard() {
     }
   };
 
-  // =========================================================
-  // SAVE EMERGENCY CONTACT
-  // =========================================================
 
   const handleSaveContact = async (e) => {
     e.preventDefault();

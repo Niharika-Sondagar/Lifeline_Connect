@@ -1,12 +1,19 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"; 
+/*our project uses React Router for navigation between pages.
 
+These four things have different jobs:
+BrowserRouter: -Provides routing functionality to your application.
+Routes:- Acts as a container for your routes.
+Route: -Defines an individual URL and what component should appear there.
+Navigate:- Used to redirect the user to another URL.
+*/
 // Global Theme & Dashboard Styles
 import "./theme.css";
 import "./dashboard.css";
 
 // Components
 import Navbar from "./components/Navbar";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "./components/ProtectedRoute"; // for restricted access to dashboard 
 
 // Pages
 import Home from "./pages/Home";
@@ -19,9 +26,9 @@ import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Navbar />
-      <Routes>
+    <BrowserRouter> {/*to enable routing in the application*/ } 
+      <Navbar /> {/*to display the navigation bar on all pages*/}
+      <Routes>  {/*to define the different routes in the application*/}
         {/* Public Landing & Auth Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />

@@ -19,10 +19,10 @@ export default function LiveMapSimulation({
   // Dynamic ETA countdown simulation when ambulance is en route
   useEffect(() => {
     if (status === "on_the_way") {
-      setEta(9);
+      setEta(9); // 9 mins if on the way
       const timer = setInterval(() => {
         setEta((prev) => (prev > 2 ? prev - 1 : 2));
-      }, 15000);
+      }, 15000); // after every 15 seconds, reduce ETA by 1 minute until it reaches 2 mins
       return () => clearInterval(timer);
     } else if (status === "reached_patient") {
       setEta(0);
@@ -227,3 +227,8 @@ export default function LiveMapSimulation({
     </div>
   );
 }
+//LiveMapSimulation is a frontend tracking component that visually represents the hospital, 
+// ambulance, and patient locations. It receives the emergency status and location information 
+// through props and displays the current ambulance state and an estimated arrival time. 
+// The ETA in this component is simulated for the UI, while the actual ambulance coordinates can
+//  come from the backend's location data."

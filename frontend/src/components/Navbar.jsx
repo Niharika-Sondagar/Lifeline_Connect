@@ -13,8 +13,8 @@ import {
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate = useNavigate(); // to navigate programmatically to different routes
+  const location = useLocation();  // to get the current location object, which contains information about the current URL and navigation state
 
   const handleLogout = () => {
     logout();

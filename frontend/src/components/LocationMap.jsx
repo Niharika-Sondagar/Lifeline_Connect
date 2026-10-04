@@ -1,3 +1,4 @@
+// leaflet - actual map component for live tracking of patient, ambulance, and hospital locations
 import { useEffect } from "react";
 import {
   MapContainer,
@@ -155,7 +156,7 @@ export default function LocationMap({
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     distanceKm = (R * c).toFixed(2);
-  }
+  } // haversine formula to calculate distance between two coordinates in km
 
   // Destination Hospital position if available
   const destinationHospitalPosition =
@@ -471,3 +472,9 @@ export default function LocationMap({
     </div>
   );
 }
+//LocationMap is a reusable React component that integrates React 
+// Leaflet and OpenStreetMap to display patient, ambulance, and hospital locations.
+//  It converts our GeoJSON coordinates from [longitude, latitude] to the [latitude, longitude]
+//  format expected by Leaflet. It can display live ambulance coordinates, calculate
+//  the approximate distance between the ambulance and patient using the Haversine formula, 
+// draw a connection between them, and display nearby hospitals as map markers."

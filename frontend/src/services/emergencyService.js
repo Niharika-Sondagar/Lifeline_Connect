@@ -25,9 +25,6 @@ export const getEmergencyById = async (id) => {
   return response.data;
 };
 
-// ============================================================
-// ACCEPT EMERGENCY + AUTOMATICALLY ASSIGN AMBULANCE
-// ============================================================
 export const acceptAndAssignAmbulance = async (id, hospitalId = null) => {
   const response = await api.put(
     `/emergencies/${id}/accept-and-assign`,

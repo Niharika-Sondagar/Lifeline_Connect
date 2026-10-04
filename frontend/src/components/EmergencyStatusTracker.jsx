@@ -15,7 +15,7 @@ const STAGES = [
   { key: "on_the_way", label: "En Route", icon: Truck },
   { key: "reached_patient", label: "At Location", icon: MapPin },
   { key: "completed", label: "Completed", icon: CheckCheck },
-];
+]; // list of possible emergency stages
 
 export default function EmergencyStatusTracker({ status }) {
   if (status === "cancelled" || status === "rejected") {
@@ -52,8 +52,8 @@ export default function EmergencyStatusTracker({ status }) {
     );
   }
 
-  const currentIndex = STAGES.findIndex((s) => s.key === status);
-  const activeStep = currentIndex === -1 ? 0 : currentIndex;
+  const currentIndex = STAGES.findIndex((s) => s.key === status); // get index for status 
+  const activeStep = currentIndex === -1 ? 0 : currentIndex; // active step = if status not found, default to 0 (pending), else use current index
   const progressPercent = (activeStep / (STAGES.length - 1)) * 100;
 
   return (
