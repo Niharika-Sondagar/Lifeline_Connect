@@ -1,3 +1,4 @@
+// Open Street Map API to get nearby hospitals based on latitude and longitude
 export const getNearbyHospitals = async (latitude, longitude) => {
   const radius = 5000; // 5 km
 
@@ -9,7 +10,7 @@ export const getNearbyHospitals = async (latitude, longitude) => {
       relation["amenity"="hospital"](around:${radius},${latitude},${longitude});
     );
     out center;
-  `;
+  `;// Overpass API query to fetch hospitals within a 5 km radius of the given latitude and longitude
 
   const response = await fetch(
     "https://overpass-api.de/api/interpreter",
@@ -20,7 +21,7 @@ export const getNearbyHospitals = async (latitude, longitude) => {
       },
       body: query,
     }
-  );
+  ); // frontend sends the query to the Overpass API to get nearby hospitals based on the provided latitude and longitude
 
   if (!response.ok) {
     throw new Error("Failed to fetch nearby hospitals");
@@ -45,3 +46,8 @@ export const getNearbyHospitals = async (latitude, longitude) => {
     };
   });
 };
+
+//For finding nearby hospitals, we use the Overpass API with OpenStreetMap data.
+//  We send the patient's latitude and longitude along with a 5-kilometer search radius. 
+// The API returns nearby hospital locations, and we extract relevant information such as
+//  hospital name, coordinates, address, and phone number before displaying it in the frontend

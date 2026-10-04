@@ -1,5 +1,6 @@
 import api from "./api";
 
+// called when user tries to login 
 export const loginUser = async (email, password) => {
   const response = await api.post("/auth/login", {
     email,
