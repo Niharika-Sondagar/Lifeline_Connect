@@ -66,7 +66,7 @@ const EMERGENCY_TYPES = [
     label: "Critical Illness",
     icon: Stethoscope,
   }, // to create buttons for different emergency types with icons
- ];
+];
 
 export default function PatientDashboard() {
   const { user, updateUser } = useAuth();
@@ -119,31 +119,29 @@ export default function PatientDashboard() {
     user?.emergencyContact?.relation || "",
   );
 
-
   const fetchData = async () => {
     console.log("🚑 PATIENT fetchData() RUNNING");
 
-  try {
-    if (user?.id) {
-      const [emRes, hospRes] = await Promise.all([
-        getAllEmergencies({ patient: user.id }),
-        getAllHospitals().catch(() => ({
-          hospitals: [],
-        })),
-      ]);
+    try {
+      if (user?.id) {
+        const [emRes, hospRes] = await Promise.all([
+          getAllEmergencies({ patient: user.id }),
+          getAllHospitals().catch(() => ({
+            hospitals: [],
+          })),
+        ]);
 
-      const list = emRes.emergencies || [];
+        const list = emRes.emergencies || [];
 
-      // ==========================================
-      // DEBUG EMERGENCY + AMBULANCE DATA
-      // ==========================================
+        // ==========================================
+        // DEBUG EMERGENCY + AMBULANCE DATA
+        // ==========================================
 
-      console.log("🚨 EMERGENCIES:", list);
+        console.log("🚨 EMERGENCIES:", list);
 
-      const active = list.find(
-        (e) =>
-          !["completed", "cancelled", "rejected"].includes(e.status)
-      );
+        const active = list.find(
+          (e) => !["completed", "cancelled", "rejected"].includes(e.status),
+        );
 
         console.log("🚨 ACTIVE EMERGENCY:", active);
 
@@ -154,9 +152,9 @@ export default function PatientDashboard() {
           active?.ambulance?.currentLocation,
         );
 
-      // ==========================================
-      // UPDATE STATE
-      // ==========================================
+        // ==========================================
+        // UPDATE STATE
+        // ==========================================
 
         setEmergencies(list);
 
@@ -164,9 +162,9 @@ export default function PatientDashboard() {
 
         setHospitals(hospRes.hospitals || []);
 
-      // ==========================================
-      // SHOW AMBULANCE GPS IN CONSOLE
-      // ==========================================
+        // ==========================================
+        // SHOW AMBULANCE GPS IN CONSOLE
+        // ==========================================
 
         if (active?.ambulance?.currentLocation?.coordinates) {
           console.log(
@@ -189,7 +187,6 @@ export default function PatientDashboard() {
   useEffect(() => {
     fetchData();
   }, [user?.id]);
-
 
   useEffect(() => {
     if (!activeEmergency) return;
@@ -238,29 +235,28 @@ export default function PatientDashboard() {
     setErrorMsg("");
 
     try {
-      const currentGPS = await getCurrentGPS();
+      const currentGPS = await getCurrentGPS({
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      });
 
       setLocationCoords(currentGPS.coordinates);
 
       setLocationName(
         `GPS: Lat ${currentGPS.latitude.toFixed(4)}, Lng ${currentGPS.longitude.toFixed(4)}`,
       );
+
+      setDetectingGps(false);
     } catch (err) {
       console.warn("GPS lookup denied or unavailable:", err?.message);
 
-        setErrorMsg(
-          "Unable to detect your current location. Please allow location permission in your browser."
-        );
+      setErrorMsg(
+        "Unable to detect your current location. Please allow location permission in your browser.",
+      );
 
-        setDetectingGps(false);
-      },
-
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
+      setDetectingGps(false);
+    }
   };
 
   // =========================================================
@@ -356,7 +352,6 @@ export default function PatientDashboard() {
     }
   };
 
-
   const handleCancel = async () => {
     if (!activeEmergency) return;
 
@@ -378,7 +373,6 @@ export default function PatientDashboard() {
       setCancelling(false);
     }
   };
-
 
   const handleSaveContact = async (e) => {
     e.preventDefault();
