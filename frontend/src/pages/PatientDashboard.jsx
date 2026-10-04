@@ -14,7 +14,6 @@ import { getNearbyHospitals } from "../services/locationService";
 import { updatePatientProfile } from "../services/authService";
 
 import EmergencyStatusTracker from "../components/EmergencyStatusTracker";
-import LiveMapSimulation from "../components/LiveMapSimulation";
 
 import {
   ShieldAlert,
@@ -76,20 +75,18 @@ export default function PatientDashboard() {
   const [hospitals, setHospitals] = useState([]);
   const [nearbyHospitals, setNearbyHospitals] = useState([]);
 
-  const [loadingNearbyHospitals, setLoadingNearbyHospitals] =
-    useState(false);
+  const [loadingNearbyHospitals, setLoadingNearbyHospitals] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [activeMapView, setActiveMapView] = useState("gps");
 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
   // Emergency Form State
   const [emergencyType, setEmergencyType] = useState(
-    "Cardiac Arrest / Chest Pain"
+    "Cardiac Arrest / Chest Pain",
   );
 
   const [description, setDescription] = useState("");
@@ -97,13 +94,10 @@ export default function PatientDashboard() {
 
   // GeoJSON format: [longitude, latitude]
   // Ahmedabad fallback coordinates
-  const [locationCoords, setLocationCoords] = useState([
-    72.5714,
-    23.0225,
-  ]);
+  const [locationCoords, setLocationCoords] = useState([72.5714, 23.0225]);
 
   const [locationName, setLocationName] = useState(
-    user?.address || "Current Location"
+    user?.address || "Current Location",
   );
 
   const [detectingGps, setDetectingGps] = useState(false);
@@ -112,15 +106,15 @@ export default function PatientDashboard() {
   const [isEditingContact, setIsEditingContact] = useState(false);
 
   const [contactName, setContactName] = useState(
-    user?.emergencyContact?.name || ""
+    user?.emergencyContact?.name || "",
   );
 
   const [contactPhone, setContactPhone] = useState(
-    user?.emergencyContact?.phone || ""
+    user?.emergencyContact?.phone || "",
   );
 
   const [contactRelation, setContactRelation] = useState(
-    user?.emergencyContact?.relation || ""
+    user?.emergencyContact?.relation || "",
   );
 
   // =========================================================
@@ -128,70 +122,69 @@ export default function PatientDashboard() {
   // =========================================================
 
   const fetchData = async () => {
-  console.log("🚑 PATIENT fetchData() RUNNING");
+    console.log("🚑 PATIENT fetchData() RUNNING");
 
-  try {
-    if (user?.id) {
-      const [emRes, hospRes] = await Promise.all([
-        getAllEmergencies({ patient: user.id }),
-        getAllHospitals().catch(() => ({
-          hospitals: [],
-        })),
-      ]);
+    try {
+      if (user?.id) {
+        const [emRes, hospRes] = await Promise.all([
+          getAllEmergencies({ patient: user.id }),
+          getAllHospitals().catch(() => ({
+            hospitals: [],
+          })),
+        ]);
 
-      const list = emRes.emergencies || [];
+        const list = emRes.emergencies || [];
 
-      // ==========================================
-      // DEBUG EMERGENCY + AMBULANCE DATA
-      // ==========================================
+        // ==========================================
+        // DEBUG EMERGENCY + AMBULANCE DATA
+        // ==========================================
 
-      console.log("🚨 EMERGENCIES:", list);
+        console.log("🚨 EMERGENCIES:", list);
 
-      const active = list.find(
-        (e) =>
-          !["completed", "cancelled", "rejected"].includes(e.status)
-      );
-
-      console.log("🚨 ACTIVE EMERGENCY:", active);
-
-      console.log("🚑 AMBULANCE:", active?.ambulance);
-
-      console.log(
-        "📍 AMBULANCE LOCATION:",
-        active?.ambulance?.currentLocation
-      );
-
-      // ==========================================
-      // UPDATE STATE
-      // ==========================================
-
-      setEmergencies(list);
-
-      setActiveEmergency(active || null);
-
-      setHospitals(hospRes.hospitals || []);
-
-      // ==========================================
-      // SHOW AMBULANCE GPS IN CONSOLE
-      // ==========================================
-
-      if (active?.ambulance?.currentLocation?.coordinates) {
-        console.log(
-          "✅ Ambulance GPS coordinates:",
-          active.ambulance.currentLocation.coordinates
+        const active = list.find(
+          (e) => !["completed", "cancelled", "rejected"].includes(e.status),
         );
-      } else {
+
+        console.log("🚨 ACTIVE EMERGENCY:", active);
+
+        console.log("🚑 AMBULANCE:", active?.ambulance);
+
         console.log(
-          "⚠️ No ambulance GPS location found in active emergency."
+          "📍 AMBULANCE LOCATION:",
+          active?.ambulance?.currentLocation,
         );
+
+        // ==========================================
+        // UPDATE STATE
+        // ==========================================
+
+        setEmergencies(list);
+
+        setActiveEmergency(active || null);
+
+        setHospitals(hospRes.hospitals || []);
+
+        // ==========================================
+        // SHOW AMBULANCE GPS IN CONSOLE
+        // ==========================================
+
+        if (active?.ambulance?.currentLocation?.coordinates) {
+          console.log(
+            "✅ Ambulance GPS coordinates:",
+            active.ambulance.currentLocation.coordinates,
+          );
+        } else {
+          console.log(
+            "⚠️ No ambulance GPS location found in active emergency.",
+          );
+        }
       }
+    } catch (err) {
+      console.error("❌ Failed to load patient data:", err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("❌ Failed to load patient data:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     fetchData();
@@ -210,53 +203,91 @@ export default function PatientDashboard() {
   }, [activeEmergency?._id, activeEmergency?.status]);
 
   // =========================================================
-  // DETECT CURRENT GPS
+  // CURRENT PATIENT GPS
   // =========================================================
+  // All patient maps use the same locationCoords state.
+  // GeoJSON format: [longitude, latitude]
 
-  const handleDetectGPS = () => {
-    if (!("geolocation" in navigator)) {
-      setErrorMsg("Geolocation is not supported by this browser.");
-      return;
-    }
+  const getCurrentGPS = () => {
+    return new Promise((resolve, reject) => {
+      if (!("geolocation" in navigator)) {
+        reject(new Error("Geolocation is not supported by this browser."));
+        return;
+      }
 
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const latitude = pos.coords.latitude;
+          const longitude = pos.coords.longitude;
+
+          resolve({
+            latitude,
+            longitude,
+            coordinates: [longitude, latitude],
+          });
+        },
+        (err) => {
+          reject(err);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        },
+      );
+    });
+  };
+
+  const handleDetectGPS = async () => {
     setDetectingGps(true);
     setErrorMsg("");
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const latitude = pos.coords.latitude;
-        const longitude = pos.coords.longitude;
+    try {
+      const currentGPS = await getCurrentGPS();
 
-        // GeoJSON format
-        setLocationCoords([longitude, latitude]);
+      setLocationCoords(currentGPS.coordinates);
 
-        setLocationName(
-          `GPS: Lat ${latitude.toFixed(4)}, Lng ${longitude.toFixed(4)}`
-        );
+      setLocationName(
+        `GPS: Lat ${currentGPS.latitude.toFixed(4)}, Lng ${currentGPS.longitude.toFixed(4)}`,
+      );
+    } catch (err) {
+      console.warn("GPS lookup denied or unavailable:", err?.message);
 
-        setDetectingGps(false);
-      },
-
-      (err) => {
-        console.warn(
-          "GPS lookup denied or unavailable:",
-          err.message
-        );
-
-        setErrorMsg(
-          "Unable to detect your current location. Please allow location permission in your browser."
-        );
-
-        setDetectingGps(false);
-      },
-
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
+      setErrorMsg(
+        "Unable to detect your current location. Please allow location permission in your browser.",
+      );
+    } finally {
+      setDetectingGps(false);
+    }
   };
+
+  // Automatically get the patient's current GPS when the dashboard opens.
+  // The manual "Detect Current GPS" button remains available.
+  useEffect(() => {
+    let cancelled = false;
+
+    const detectInitialGPS = async () => {
+      try {
+        const currentGPS = await getCurrentGPS();
+
+        if (cancelled) return;
+
+        setLocationCoords(currentGPS.coordinates);
+        setLocationName(
+          `GPS: Lat ${currentGPS.latitude.toFixed(4)}, Lng ${currentGPS.longitude.toFixed(4)}`,
+        );
+      } catch (err) {
+        console.warn("Initial GPS lookup unavailable:", err?.message);
+        // Keep the existing fallback location if browser GPS is unavailable.
+      }
+    };
+
+    detectInitialGPS();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // =========================================================
   // FIND NEARBY HOSPITALS
@@ -272,10 +303,7 @@ export default function PatientDashboard() {
 
       const [longitude, latitude] = locationCoords;
 
-      const results = await getNearbyHospitals(
-        latitude,
-        longitude
-      );
+      const results = await getNearbyHospitals(latitude, longitude);
 
       setNearbyHospitals(results);
 
@@ -283,14 +311,9 @@ export default function PatientDashboard() {
         setErrorMsg("No hospitals found within 5 km.");
       }
     } catch (error) {
-      console.error(
-        "Nearby hospital search failed:",
-        error
-      );
+      console.error("Nearby hospital search failed:", error);
 
-      setErrorMsg(
-        "Unable to find nearby hospitals. Please try again."
-      );
+      setErrorMsg("Unable to find nearby hospitals. Please try again.");
     } finally {
       setLoadingNearbyHospitals(false);
     }
@@ -310,14 +333,31 @@ export default function PatientDashboard() {
     setSubmitting(true);
 
     try {
+      // Get the freshest available patient GPS immediately before dispatch.
+      // If GPS is unavailable, keep the last successfully detected location.
+      let emergencyCoordinates = locationCoords;
+
+      try {
+        const currentGPS = await getCurrentGPS();
+
+        emergencyCoordinates = currentGPS.coordinates;
+        setLocationCoords(currentGPS.coordinates);
+        setLocationName(
+          `GPS: Lat ${currentGPS.latitude.toFixed(4)}, Lng ${currentGPS.longitude.toFixed(4)}`,
+        );
+      } catch (gpsError) {
+        console.warn(
+          "Could not refresh GPS before SOS; using last known location:",
+          gpsError?.message,
+        );
+      }
+
       const payload = {
         patient: user?.id,
 
         emergencyType,
 
-        description:
-          description ||
-          `Critical emergency: ${emergencyType}`,
+        description: description || `Critical emergency: ${emergencyType}`,
 
         hospital: selectedHospital || null,
 
@@ -326,24 +366,20 @@ export default function PatientDashboard() {
 
           // GeoJSON:
           // [longitude, latitude]
-          coordinates: locationCoords,
+          coordinates: emergencyCoordinates,
         },
       };
 
       await createEmergency(payload);
 
-      setSuccessMsg(
-        "🚨 SOS Emergency Dispatched! Contacting emergency teams."
-      );
+      setSuccessMsg("🚨 SOS Emergency Dispatched! Contacting emergency teams.");
 
       setDescription("");
 
       await fetchData();
     } catch (err) {
       setErrorMsg(
-        err.response?.data?.message ||
-          err.message ||
-          "Failed to dispatch SOS."
+        err.response?.data?.message || err.message || "Failed to dispatch SOS.",
       );
     } finally {
       setSubmitting(false);
@@ -358,7 +394,7 @@ export default function PatientDashboard() {
     if (!activeEmergency) return;
 
     const confirmed = window.confirm(
-      "Are you sure you want to cancel this emergency request?"
+      "Are you sure you want to cancel this emergency request?",
     );
 
     if (!confirmed) return;
@@ -370,10 +406,7 @@ export default function PatientDashboard() {
 
       await fetchData();
     } catch (err) {
-      alert(
-        err.response?.data?.message ||
-          "Failed to cancel emergency."
-      );
+      alert(err.response?.data?.message || "Failed to cancel emergency.");
     } finally {
       setCancelling(false);
     }
@@ -405,7 +438,7 @@ export default function PatientDashboard() {
     } catch (err) {
       alert(
         "Failed to update emergency contact: " +
-          (err.response?.data?.message || err.message)
+          (err.response?.data?.message || err.message),
       );
     }
   };
@@ -416,7 +449,6 @@ export default function PatientDashboard() {
 
   return (
     <div className="dashboard-page">
-
       {/* =====================================================
           HEADER
       ====================================================== */}
@@ -446,18 +478,6 @@ export default function PatientDashboard() {
             <RefreshCw size={16} />
             <span>Refresh</span>
           </button>
-
-          <a
-            href="tel:108"
-            className="btn-primary"
-            style={{
-              textDecoration: "none",
-              background: "#b91c1c",
-            }}
-          >
-            <Phone size={16} />
-            <span>Emergency: 108</span>
-          </a>
         </div>
       </div>
 
@@ -506,14 +526,10 @@ export default function PatientDashboard() {
           className="card"
           style={{
             border: "2px solid #ef4444",
-            boxShadow:
-              "0 10px 30px rgba(220, 38, 38, 0.15)",
+            boxShadow: "0 10px 30px rgba(220, 38, 38, 0.15)",
           }}
         >
-          <div
-            className="card-header"
-            style={{ background: "#fee2e2" }}
-          >
+          <div className="card-header" style={{ background: "#fee2e2" }}>
             <div
               style={{
                 display: "flex",
@@ -537,128 +553,68 @@ export default function PatientDashboard() {
               </h2>
             </div>
 
-            <span
-              className={`status-pill ${activeEmergency.status}`}
-            >
+            <span className={`status-pill ${activeEmergency.status}`}>
               {activeEmergency.status.replace("_", " ")}
             </span>
           </div>
 
           <div className="card-body">
+            <EmergencyStatusTracker status={activeEmergency.status} />
 
-            <EmergencyStatusTracker
-              status={activeEmergency.status}
-            />
-
-            {/* Map View Mode Switcher */}
+            {/* Live Dispatch Tracking Map */}
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
                 alignItems: "center",
+                gap: "0.5rem",
                 margin: "1.25rem 0 0.5rem 0",
                 flexWrap: "wrap",
-                gap: "0.5rem",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  flexWrap: "wrap",
-                }}
-              >
-                <MapPin size={18} color="#dc2626" />
-                <strong style={{ fontSize: "1rem", color: "var(--navy)" }}>
-                  Live Dispatch Tracking Map
-                </strong>
-                {activeEmergency.ambulance && (
-                  <span
-                    style={{
-                      fontSize: "0.75rem",
-                      background: "#e0f2fe",
-                      color: "#0369a1",
-                      padding: "2px 8px",
-                      borderRadius: "10px",
-                      fontWeight: 700,
-                    }}
-                  >
-                    🚑 Driver Live Beacon Active
-                  </span>
-                )}
-              </div>
+              <MapPin size={18} color="#dc2626" />
+              <strong style={{ fontSize: "1rem", color: "var(--navy)" }}>
+                Live Dispatch Tracking Map
+              </strong>
 
-              <div style={{ display: "flex", gap: "0.4rem" }}>
-                <button
-                  type="button"
-                  onClick={() => setActiveMapView("gps")}
-                  className={`btn-secondary ${
-                    activeMapView === "gps" ? "btn-primary" : ""
-                  }`}
+              {activeEmergency.ambulance && (
+                <span
                   style={{
-                    padding: "0.3rem 0.75rem",
-                    fontSize: "0.8rem",
-                    background: activeMapView === "gps" ? "#0284c7" : "",
+                    fontSize: "0.75rem",
+                    background: "#e0f2fe",
+                    color: "#0369a1",
+                    padding: "2px 8px",
+                    borderRadius: "10px",
+                    fontWeight: 700,
                   }}
                 >
-                  🗺️ Live GPS Map
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveMapView("radar")}
-                  className={`btn-secondary ${
-                    activeMapView === "radar" ? "btn-primary" : ""
-                  }`}
-                  style={{
-                    padding: "0.3rem 0.75rem",
-                    fontSize: "0.8rem",
-                    background: activeMapView === "radar" ? "#0284c7" : "",
-                  }}
-                >
-                  📡 Radar Telemetry
-                </button>
-              </div>
+                  🚑 Driver Live Beacon Active
+                </span>
+              )}
             </div>
 
-            {/* Live GPS Map vs Radar View */}
-            {activeMapView === "gps" ? (
-              <LocationMap
-                coordinates={
-                  activeEmergency.patientLocation?.coordinates ||
-                  locationCoords
-                }
-                ambulanceLocation={activeEmergency.ambulance?.currentLocation}
-                ambulance={activeEmergency.ambulance}
-                driver={
-                  activeEmergency.driver ||
-                  activeEmergency.ambulance?.driver
-                }
-                hospital={activeEmergency.hospital}
-                activeStatus={activeEmergency.status}
-                height="380px"
-              />
-            ) : (
-              <LiveMapSimulation
-                patientLocation={activeEmergency.patientLocation}
-                hospital={activeEmergency.hospital}
-                ambulance={activeEmergency.ambulance}
-                status={activeEmergency.status}
-              />
-            )}
+            {/* Always use the same current patient GPS coordinates */}
+            <LocationMap
+              coordinates={locationCoords}
+              ambulanceLocation={activeEmergency.ambulance?.currentLocation}
+              ambulance={activeEmergency.ambulance}
+              driver={
+                activeEmergency.driver || activeEmergency.ambulance?.driver
+              }
+              hospital={activeEmergency.hospital}
+              activeStatus={activeEmergency.status}
+              height="380px"
+            />
 
             {/* Emergency Details */}
 
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(220px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                 gap: "1rem",
                 marginTop: "1.5rem",
               }}
             >
-
               {/* Emergency Type */}
 
               <div
@@ -755,8 +711,7 @@ export default function PatientDashboard() {
                     marginTop: "0.25rem",
                   }}
                 >
-                  {activeEmergency.ambulance
-                    ?.vehicleNumber ||
+                  {activeEmergency.ambulance?.vehicleNumber ||
                     "Dispatching Unit..."}
                 </strong>
 
@@ -766,9 +721,7 @@ export default function PatientDashboard() {
                     color: "var(--text-muted)",
                   }}
                 >
-                  Driver:{" "}
-                  {activeEmergency.driver?.name ||
-                    "Pending allocation"}
+                  Driver: {activeEmergency.driver?.name || "Pending allocation"}
                 </span>
               </div>
 
@@ -798,9 +751,7 @@ export default function PatientDashboard() {
                     marginTop: "0.25rem",
                   }}
                 >
-                  {new Date(
-                    activeEmergency.requestedAt
-                  ).toLocaleTimeString()}
+                  {new Date(activeEmergency.requestedAt).toLocaleTimeString()}
                 </strong>
 
                 <span
@@ -809,18 +760,14 @@ export default function PatientDashboard() {
                     color: "var(--text-muted)",
                   }}
                 >
-                  {new Date(
-                    activeEmergency.requestedAt
-                  ).toLocaleDateString()}
+                  {new Date(activeEmergency.requestedAt).toLocaleDateString()}
                 </span>
               </div>
             </div>
 
             {/* Cancel Emergency */}
 
-            {["pending", "accepted"].includes(
-              activeEmergency.status
-            ) && (
+            {["pending", "accepted"].includes(activeEmergency.status) && (
               <div
                 style={{
                   marginTop: "1.5rem",
@@ -840,9 +787,7 @@ export default function PatientDashboard() {
                   <X size={16} />
 
                   <span>
-                    {cancelling
-                      ? "Cancelling..."
-                      : "Cancel Emergency Request"}
+                    {cancelling ? "Cancelling..." : "Cancel Emergency Request"}
                   </span>
                 </button>
               </div>
@@ -857,19 +802,14 @@ export default function PatientDashboard() {
         <div className="sos-banner-card">
           <div className="sos-content">
             <h2>
-              <ShieldAlert
-                size={30}
-                className="animate-pulse-red"
-              />
-
+              <ShieldAlert size={30} className="animate-pulse-red" />
               Need Urgent Medical Assistance?
             </h2>
 
             <p>
-              Press SOS to immediately alert the nearest
-              emergency dispatch and medical trauma facilities.
-              Your coordinates and medical contact will be
-              instantly relayed.
+              Press SOS to immediately alert the nearest emergency dispatch and
+              medical trauma facilities. Your coordinates and medical contact
+              will be instantly relayed.
             </p>
           </div>
 
@@ -882,9 +822,7 @@ export default function PatientDashboard() {
             <ShieldAlert size={26} />
 
             <span>
-              {submitting
-                ? "Dispatching SOS..."
-                : "1-CLICK INSTANT SOS"}
+              {submitting ? "Dispatching SOS..." : "1-CLICK INSTANT SOS"}
             </span>
           </button>
         </div>
@@ -895,7 +833,6 @@ export default function PatientDashboard() {
       ====================================================== */}
 
       <div className="content-grid-3">
-
         {/* ===================================================
             LEFT COLUMN
         ==================================================== */}
@@ -903,50 +840,36 @@ export default function PatientDashboard() {
         <div className="card">
           <div className="card-header">
             <h2>
-              <Activity
-                size={20}
-                color="var(--primary)"
-              />
-
+              <Activity size={20} color="var(--primary)" />
               Customized Emergency Request
             </h2>
           </div>
 
           <div className="card-body">
             <form onSubmit={handleSOSSubmit}>
-
               {/* Emergency Type */}
 
               <div className="form-group-modern">
-                <label>
-                  Select Emergency Category
-                </label>
+                <label>Select Emergency Category</label>
 
                 <div className="emergency-type-grid">
                   {EMERGENCY_TYPES.map((type) => {
                     const Icon = type.icon;
 
-                    const isSelected =
-                      emergencyType === type.id;
+                    const isSelected = emergencyType === type.id;
 
                     return (
                       <button
                         type="button"
                         key={type.id}
-                        onClick={() =>
-                          setEmergencyType(type.id)
-                        }
+                        onClick={() => setEmergencyType(type.id)}
                         className={`emergency-type-btn ${
                           isSelected ? "selected" : ""
                         }`}
                       >
                         <Icon
                           size={22}
-                          color={
-                            isSelected
-                              ? "#dc2626"
-                              : "var(--text-muted)"
-                          }
+                          color={isSelected ? "#dc2626" : "var(--text-muted)"}
                         />
 
                         <span>{type.label}</span>
@@ -959,20 +882,15 @@ export default function PatientDashboard() {
               {/* Preferred Hospital */}
 
               <div className="form-group-modern">
-                <label>
-                  Preferred Destination Hospital (Optional)
-                </label>
+                <label>Preferred Destination Hospital (Optional)</label>
 
                 <select
                   className="form-control-modern"
                   value={selectedHospital}
-                  onChange={(e) =>
-                    setSelectedHospital(e.target.value)
-                  }
+                  onChange={(e) => setSelectedHospital(e.target.value)}
                 >
                   <option value="">
-                    Auto-Assign Nearest Emergency Facility
-                    (Recommended)
+                    Auto-Assign Nearest Emergency Facility (Recommended)
                   </option>
 
                   {hospitals.map((h) => (
@@ -988,7 +906,6 @@ export default function PatientDashboard() {
               ================================================== */}
 
               <div className="form-group-modern">
-
                 <div
                   style={{
                     display: "flex",
@@ -1011,15 +928,10 @@ export default function PatientDashboard() {
                       fontSize: "0.8rem",
                     }}
                   >
-                    <MapPin
-                      size={14}
-                      color="#dc2626"
-                    />
+                    <MapPin size={14} color="#dc2626" />
 
                     <span>
-                      {detectingGps
-                        ? "Acquiring GPS..."
-                        : "Detect Current GPS"}
+                      {detectingGps ? "Acquiring GPS..." : "Detect Current GPS"}
                     </span>
                   </button>
                 </div>
@@ -1030,9 +942,7 @@ export default function PatientDashboard() {
                   type="text"
                   className="form-control-modern"
                   value={locationName}
-                  onChange={(e) =>
-                    setLocationName(e.target.value)
-                  }
+                  onChange={(e) => setLocationName(e.target.value)}
                   placeholder="e.g. 104 Sunset Boulevard, City Center"
                   required
                 />
@@ -1047,8 +957,8 @@ export default function PatientDashboard() {
                     display: "block",
                   }}
                 >
-                  Broadcast Coordinates: [
-                  {locationCoords[0]}, {locationCoords[1]}]
+                  Broadcast Coordinates: [{locationCoords[0]},{" "}
+                  {locationCoords[1]}]
                 </span>
 
                 {/* =================================================
@@ -1112,8 +1022,7 @@ export default function PatientDashboard() {
                         style={{
                           padding: "1rem",
                           marginBottom: "0.75rem",
-                          border:
-                            "1px solid #e5e7eb",
+                          border: "1px solid #e5e7eb",
                           borderRadius: "10px",
                           background: "#ffffff",
                         }}
@@ -1125,14 +1034,9 @@ export default function PatientDashboard() {
                             gap: "0.5rem",
                           }}
                         >
-                          <Hospital
-                            size={18}
-                            color="#dc2626"
-                          />
+                          <Hospital size={18} color="#dc2626" />
 
-                          <strong>
-                            {hospital.name}
-                          </strong>
+                          <strong>{hospital.name}</strong>
                         </div>
 
                         <div
@@ -1163,15 +1067,12 @@ export default function PatientDashboard() {
                             marginTop: "0.3rem",
                           }}
                         >
-                          GPS:{" "}
-                          {hospital.latitude},{" "}
-                          {hospital.longitude}
+                          GPS: {hospital.latitude}, {hospital.longitude}
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-
               </div>
 
               {/* =================================================
@@ -1179,18 +1080,13 @@ export default function PatientDashboard() {
               ================================================== */}
 
               <div className="form-group-modern">
-                <label>
-                  Emergency Symptoms & Patient Details
-                  (Optional)
-                </label>
+                <label>Emergency Symptoms & Patient Details (Optional)</label>
 
                 <textarea
                   className="form-control-modern"
                   rows={3}
                   value={description}
-                  onChange={(e) =>
-                    setDescription(e.target.value)
-                  }
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe patient condition, conscious state, bleeding, or landmarks for the driver..."
                 />
               </div>
@@ -1201,9 +1097,7 @@ export default function PatientDashboard() {
 
               <button
                 type="submit"
-                disabled={
-                  submitting || !!activeEmergency
-                }
+                disabled={submitting || !!activeEmergency}
                 className="btn-primary"
                 style={{
                   width: "100%",
@@ -1218,8 +1112,8 @@ export default function PatientDashboard() {
                   {activeEmergency
                     ? "An Emergency Is Currently Active"
                     : submitting
-                    ? "Submitting Dispatch Request..."
-                    : "Dispatch Emergency Ambulance"}
+                      ? "Submitting Dispatch Request..."
+                      : "Dispatch Emergency Ambulance"}
                 </span>
               </button>
             </form>
@@ -1231,7 +1125,6 @@ export default function PatientDashboard() {
         ====================================================== */}
 
         <div>
-
           {/* ===================================================
               EMERGENCY CONTACT
           ==================================================== */}
@@ -1239,83 +1132,57 @@ export default function PatientDashboard() {
           <div className="card">
             <div className="card-header">
               <h2>
-                <UserCheck
-                  size={20}
-                  color="#0284c7"
-                />
-
+                <UserCheck size={20} color="#0284c7" />
                 Emergency Contact
               </h2>
 
               <button
-                onClick={() =>
-                  setIsEditingContact(
-                    !isEditingContact
-                  )
-                }
+                onClick={() => setIsEditingContact(!isEditingContact)}
                 className="btn-secondary"
                 style={{
                   padding: "0.25rem 0.6rem",
                   fontSize: "0.8rem",
                 }}
               >
-                {isEditingContact
-                  ? "Cancel"
-                  : "Edit"}
+                {isEditingContact ? "Cancel" : "Edit"}
               </button>
             </div>
 
             <div className="card-body">
-
               {isEditingContact ? (
                 <form onSubmit={handleSaveContact}>
-
                   <div className="form-group-modern">
-                    <label>
-                      Contact Person Name
-                    </label>
+                    <label>Contact Person Name</label>
 
                     <input
                       type="text"
                       className="form-control-modern"
                       value={contactName}
-                      onChange={(e) =>
-                        setContactName(e.target.value)
-                      }
+                      onChange={(e) => setContactName(e.target.value)}
                       required
                     />
                   </div>
 
                   <div className="form-group-modern">
-                    <label>
-                      Contact Phone
-                    </label>
+                    <label>Contact Phone</label>
 
                     <input
                       type="tel"
                       className="form-control-modern"
                       value={contactPhone}
-                      onChange={(e) =>
-                        setContactPhone(e.target.value)
-                      }
+                      onChange={(e) => setContactPhone(e.target.value)}
                       required
                     />
                   </div>
 
                   <div className="form-group-modern">
-                    <label>
-                      Relationship
-                    </label>
+                    <label>Relationship</label>
 
                     <input
                       type="text"
                       className="form-control-modern"
                       value={contactRelation}
-                      onChange={(e) =>
-                        setContactRelation(
-                          e.target.value
-                        )
-                      }
+                      onChange={(e) => setContactRelation(e.target.value)}
                       placeholder="e.g. Spouse, Parent, Sibling"
                     />
                   </div>
@@ -1333,7 +1200,6 @@ export default function PatientDashboard() {
                 </form>
               ) : (
                 <div>
-
                   <div
                     style={{
                       marginBottom: "1rem",
@@ -1355,8 +1221,7 @@ export default function PatientDashboard() {
                         color: "var(--navy)",
                       }}
                     >
-                      {user?.emergencyContact?.name ||
-                        "Not set yet"}
+                      {user?.emergencyContact?.name || "Not set yet"}
                     </strong>
                   </div>
 
@@ -1381,8 +1246,7 @@ export default function PatientDashboard() {
                         color: "#0284c7",
                       }}
                     >
-                      {user?.emergencyContact?.phone ||
-                        "No phone added"}
+                      {user?.emergencyContact?.phone || "No phone added"}
                     </strong>
                   </div>
 
@@ -1403,11 +1267,9 @@ export default function PatientDashboard() {
                         color: "var(--navy)",
                       }}
                     >
-                      {user?.emergencyContact?.relation ||
-                        "Not specified"}
+                      {user?.emergencyContact?.relation || "Not specified"}
                     </span>
                   </div>
-
                 </div>
               )}
             </div>
@@ -1425,11 +1287,7 @@ export default function PatientDashboard() {
           >
             <div className="card-header">
               <h2>
-                <AlertTriangle
-                  size={18}
-                  color="#d97706"
-                />
-
+                <AlertTriangle size={18} color="#d97706" />
                 While Waiting for Paramedics
               </h2>
             </div>
@@ -1443,30 +1301,26 @@ export default function PatientDashboard() {
               }}
             >
               <p>
-                • <strong>Stay Calm:</strong> Keep the
-                patient still and reassured.
+                • <strong>Stay Calm:</strong> Keep the patient still and
+                reassured.
               </p>
 
               <p>
-                • <strong>Clear Access:</strong> Ensure
-                main gate and doorways are unlocked for
-                paramedics.
+                • <strong>Clear Access:</strong> Ensure main gate and doorways
+                are unlocked for paramedics.
               </p>
 
               <p>
-                • <strong>Prepare Documents:</strong> Keep
-                patient ID and current medications readily
-                accessible.
+                • <strong>Prepare Documents:</strong> Keep patient ID and
+                current medications readily accessible.
               </p>
 
               <p>
-                • <strong>Keep Line Free:</strong> Ambulance
-                dispatchers may call for immediate
-                first-aid instructions.
+                • <strong>Keep Line Free:</strong> Ambulance dispatchers may
+                call for immediate first-aid instructions.
               </p>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -1477,11 +1331,7 @@ export default function PatientDashboard() {
       <div className="card">
         <div className="card-header">
           <h2>
-            <Clock
-              size={20}
-              color="var(--navy)"
-            />
-
+            <Clock size={20} color="var(--navy)" />
             Emergency History & Records
           </h2>
 
@@ -1496,26 +1346,20 @@ export default function PatientDashboard() {
         </div>
 
         <div className="table-responsive">
-
           {emergencies.length === 0 ? (
             <div className="empty-state">
-
               <div className="empty-state-icon">
                 <CheckCircle size={28} />
               </div>
 
-              <h4>
-                No Emergency Requests Recorded
-              </h4>
+              <h4>No Emergency Requests Recorded</h4>
 
               <p>
-                You have not made any emergency requests
-                on this account yet.
+                You have not made any emergency requests on this account yet.
               </p>
             </div>
           ) : (
             <table className="app-table">
-
               <thead>
                 <tr>
                   <th>Date & Time</th>
@@ -1527,15 +1371,12 @@ export default function PatientDashboard() {
               </thead>
 
               <tbody>
-
                 {emergencies.map((em) => (
                   <tr key={em._id}>
-
                     <td>
                       <strong>
                         {new Date(
-                          em.requestedAt ||
-                            em.createdAt
+                          em.requestedAt || em.createdAt,
                         ).toLocaleDateString()}
                       </strong>
 
@@ -1547,8 +1388,7 @@ export default function PatientDashboard() {
                         }}
                       >
                         {new Date(
-                          em.requestedAt ||
-                            em.createdAt
+                          em.requestedAt || em.createdAt,
                         ).toLocaleTimeString()}
                       </span>
                     </td>
@@ -1570,46 +1410,28 @@ export default function PatientDashboard() {
                             color: "var(--text-muted)",
                           }}
                         >
-                          {em.description.substring(
-                            0,
-                            45
-                          )}
-                          {em.description.length > 45
-                            ? "..."
-                            : ""}
+                          {em.description.substring(0, 45)}
+                          {em.description.length > 45 ? "..." : ""}
                         </span>
                       )}
                     </td>
 
-                    <td>
-                      {em.hospital?.name ||
-                        "Auto-assigned ER"}
-                    </td>
+                    <td>{em.hospital?.name || "Auto-assigned ER"}</td>
+
+                    <td>{em.ambulance?.vehicleNumber || "None"}</td>
 
                     <td>
-                      {em.ambulance?.vehicleNumber ||
-                        "None"}
-                    </td>
-
-                    <td>
-                      <span
-                        className={`status-pill ${em.status}`}
-                      >
+                      <span className={`status-pill ${em.status}`}>
                         {em.status.replace("_", " ")}
                       </span>
                     </td>
-
                   </tr>
                 ))}
-
               </tbody>
             </table>
           )}
-
         </div>
       </div>
-
     </div>
   );
 }
-

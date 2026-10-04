@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { registerUser } from "../services/authService";
+import { registerUser, checkAdminExists } from "../services/authService";
 import "../auth.css";
 
 function Register() {
@@ -11,13 +11,13 @@ function Register() {
     confirmPassword: "",
     phone: "",
     role: "patient",
-    adminSecretKey: "",
     address: "",
     emergencyContactName: "",
     emergencyContactPhone: "",
     emergencyContactRelation: "",
   });
 
+  const [adminExists, setAdminExists] = useState(false);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -27,17 +27,40 @@ function Register() {
 
   const navigate = useNavigate();
 
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAdminStatus = async () => {
+      try {
+        const res = await checkAdminExists();
+        if (isMounted && res?.adminExists) {
+          setAdminExists(true);
+          setFormData((prev) => {
+            if (prev.role === "admin") {
+              return { ...prev, role: "patient" };
+            }
+            return prev;
+          });
+        }
+      } catch (err) {
+        console.error("Could not fetch admin status:", err);
+      }
+    };
+    fetchAdminStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Email format validator
   const validateEmail = (val) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(val?.trim() || "");
   };
 
-  // Phone number validator (supports 10-digit numbers with optional country code)
+  // Phone number validator - exactly 10 digits only
   const validatePhone = (val) => {
     if (!val) return false;
-    const cleaned = val.replace(/[\s\-()]/g, "");
-    return /^(\+?[0-9]{1,3})?[0-9]{10}$/.test(cleaned);
+    return /^[0-9]{10}$/.test(val.trim());
   };
 
   // Name validation based on role
@@ -142,12 +165,6 @@ function Register() {
         return validatePhoneNumber(value, "Phone number");
       case "address":
         return validateAddress(value, currentData.role);
-      case "adminSecretKey":
-        if (currentData.role === "admin") {
-          const trimmed = value?.trim() || "";
-          if (!trimmed) return "Admin security key is required.";
-        }
-        return "";
       case "emergencyContactName":
         if (currentData.role === "patient") {
           const trimmed = value?.trim() || "";
@@ -219,13 +236,9 @@ function Register() {
     const addressErr = validateAddress(data.address, data.role);
     if (addressErr) newErrors.address = addressErr;
 
-    if (data.role === "admin") {
-      const adminKeyErr = validateField(
-        "adminSecretKey",
-        data.adminSecretKey,
-        data,
-      );
-      if (adminKeyErr) newErrors.adminSecretKey = adminKeyErr;
+    if (data.role === "admin" && adminExists) {
+      newErrors.role =
+        "An administrator is already registered. Only one admin can exist in the system.";
     }
 
     if (data.role === "patient") {
@@ -256,9 +269,16 @@ function Register() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // For all phone fields: allow digits only and maximum 10 digits
+    let newValue = value;
+    if (name === "phone" || name === "emergencyContactPhone") {
+      newValue = value.replace(/\D/g, "").slice(0, 10);
+    }
+
     const updatedData = {
       ...formData,
-      [name]: value,
+      [name]: newValue,
     };
     setFormData(updatedData);
 
@@ -269,9 +289,6 @@ function Register() {
         delete updatedErrors.emergencyContactName;
         delete updatedErrors.emergencyContactPhone;
         delete updatedErrors.emergencyContactRelation;
-      }
-      if (value !== "admin") {
-        delete updatedErrors.adminSecretKey;
       }
       // Revalidate address and name for new role
       const nameErr = validateName(updatedData.name, value);
@@ -288,7 +305,7 @@ function Register() {
 
     // Live validation if field was touched or currently has error
     if (touched[name] || errors[name]) {
-      const error = validateField(name, value, updatedData);
+      const error = validateField(name, newValue, updatedData);
       setErrors((prev) => ({
         ...prev,
         [name]: error,
@@ -302,7 +319,7 @@ function Register() {
     ) {
       const confirmErr = validateConfirmPassword(
         updatedData.confirmPassword,
-        value,
+        newValue,
       );
       setErrors((prev) => ({
         ...prev,
@@ -352,10 +369,6 @@ function Register() {
       address: true,
     };
 
-    if (formData.role === "admin") {
-      allTouched.adminSecretKey = true;
-    }
-
     if (formData.role === "patient") {
       allTouched.emergencyContactName = true;
       allTouched.emergencyContactPhone = true;
@@ -383,22 +396,24 @@ function Register() {
       name: formData.name.trim(),
       email: formData.email.trim().toLowerCase(),
       password: formData.password,
-      phone: formData.phone.trim(),
+      phone: formData.phone.replace(/\D/g, "").slice(0, 10),
       role: formData.role,
       address: formData.address.trim(),
     };
-
-    if (formData.role === "admin") {
-      payload.adminSecretKey = formData.adminSecretKey.trim();
-    }
-
     // Only include emergencyContact data if the role is patient
     if (formData.role === "patient") {
       payload.emergencyContact = {
         name: formData.emergencyContactName.trim(),
-        phone: formData.emergencyContactPhone.trim(),
+        phone: formData.emergencyContactPhone.replace(/\D/g, "").slice(0, 10),
         relation: formData.emergencyContactRelation.trim(),
       };
+    }
+
+    if (formData.role === "admin" && adminExists) {
+      setErrorMsg(
+        "An administrator is already registered. Only one admin can exist in the system.",
+      );
+      return;
     }
 
     setLoading(true);
@@ -501,52 +516,31 @@ function Register() {
               <option value="patient">Patient</option>
               <option value="hospital">Hospital</option>
               <option value="driver">Ambulance Driver</option>
-              <option value="admin">System Administrator</option>
-            </select>
-          </div>
-
-          {/* Admin Security Key (Only shown if role is admin) */}
-          {formData.role === "admin" && (
-            <div
-              className="form-group"
-              style={{
-                background: "#f5f3ff",
-                border: "1px solid #ddd6fe",
-                borderRadius: "8px",
-                padding: "14px",
-              }}
-            >
-              <label htmlFor="reg-admin-key" style={{ color: "#6d28d9" }}>
-                Admin Security Key <span className="required-star">*</span>
-              </label>
-              <input
-                id="reg-admin-key"
-                type="password"
-                name="adminSecretKey"
-                placeholder="Enter secret admin key (Default: ADMIN2026)"
-                value={formData.adminSecretKey}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={
-                  touched.adminSecretKey && errors.adminSecretKey
-                    ? "input-error"
-                    : ""
-                }
-                required
-              />
-              {touched.adminSecretKey && errors.adminSecretKey ? (
-                <span className="field-error-text">
-                  {errors.adminSecretKey}
-                </span>
+              {adminExists ? (
+                <option value="admin" disabled style={{ color: "#9ca3af" }}>
+                  System Administrator (Unavailable - 1 Admin Allowed)
+                </option>
               ) : (
-                <span className="field-hint-text" style={{ color: "#7c3aed" }}>
-                  🔑 Authorization code configured in backend (Default:{" "}
-                  <code>ADMIN2026</code>)
-                </span>
+                <option value="admin">System Administrator</option>
               )}
-            </div>
-          )}
-
+            </select>
+            {adminExists && (
+              <span
+                style={{
+                  display: "block",
+                  fontSize: "0.8rem",
+                  color: "#6b7280",
+                  marginTop: "6px",
+                  fontWeight: 500,
+                }}
+              >
+                🔒 An administrator is already registered. Only 1 administrator is permitted in the system.
+              </span>
+            )}
+            {errors.role && (
+              <span className="field-error-text">{errors.role}</span>
+            )}
+          </div>
           {/* Name */}
           <div className="form-group">
             <label htmlFor="reg-name">
@@ -679,6 +673,9 @@ function Register() {
               value={formData.phone}
               onChange={handleChange}
               onBlur={handleBlur}
+              maxLength={10}
+              inputMode="numeric"
+              pattern="[0-9]{10}"
               className={touched.phone && errors.phone ? "input-error" : ""}
               required
             />
@@ -781,6 +778,9 @@ function Register() {
                   value={formData.emergencyContactPhone}
                   onChange={handleChange}
                   onBlur={handleBlur}
+                  maxLength={10}
+                  inputMode="numeric"
+                  pattern="[0-9]{10}"
                   className={
                     touched.emergencyContactPhone &&
                     errors.emergencyContactPhone

@@ -24,3 +24,8 @@ export const updatePatientProfile = async (id, data) => {
   const response = await api.put(`/patients/profile/${id}`, data);
   return response.data;
 };
+
+export const checkAdminExists = async () => {
+  const response = await api.get("/auth/admin-exists");
+  return response.data;
+};

@@ -27,6 +27,17 @@ const register = async (req, res) => {
       });
     }
 
+    // Only one admin can exist in the system
+    if (role === "admin") {
+      const existingAdmin = await User.findOne({ role: "admin" });
+      if (existingAdmin) {
+        return res.status(400).json({
+          message:
+            "An administrator is already registered. Only one administrator can exist in the system.",
+        });
+      }
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -170,7 +181,26 @@ const login = async (req, res) => {
   }
 };
 
+// ===============================
+// CHECK IF ADMIN ALREADY EXISTS
+// ===============================
+const checkAdminExists = async (req, res) => {
+  try {
+    const adminCount = await User.countDocuments({ role: "admin" });
+    res.status(200).json({
+      adminExists: adminCount >= 1,
+    });
+  } catch (error) {
+    console.error("Error in checkAdminExists:", error);
+    res.status(500).json({
+      adminExists: false,
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
+  checkAdminExists,
 };
