@@ -12,7 +12,7 @@ const hospitalRoutes = require("./backend/routes/hospitalRoutes");
 const ambulanceRoutes = require("./backend/routes/ambulanceRoutes");
 const emergencyRoutes = require("./backend/routes/emergencyRoutes");
 const locationRoutes = require("./backend/routes/locationRoutes");
-
+const userRoutes = require("./backend/routes/userRoutes");
 dotenv.config();
 connectDB();
 
