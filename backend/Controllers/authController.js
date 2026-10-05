@@ -73,6 +73,8 @@ const register = async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        address: user.address,
+        emergencyContact: user.emergencyContact,
       },
       hospital: hospital
         ? {

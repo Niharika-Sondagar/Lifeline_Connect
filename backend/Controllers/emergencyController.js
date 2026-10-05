@@ -1,6 +1,8 @@
 const EmergencyRequest = require("../models/EmergencyRequest");
 const Ambulance = require("../models/Ambulance");
 const User = require("../models/User");
+const Hospital = require("../models/Hospital");
+const { sendEmergencySms } = require("../services/smsService");
 
 // ============================================================
 // CREATE EMERGENCY REQUEST
@@ -13,6 +15,7 @@ const createEmergency = async (req, res) => {
       emergencyType,
       description,
       patientLocation,
+      emergencyContact,
     } = req.body;
 
     if (
@@ -26,6 +29,30 @@ const createEmergency = async (req, res) => {
       });
     }
 
+    // Look up the patient to obtain profile info and registered emergency contact
+    const patientUser = await User.findById(patient);
+
+    // Determine the emergency contact (either explicitly passed or from patient user document)
+    const activeEmergencyContact =
+      emergencyContact ||
+      (patientUser?.emergencyContact && patientUser.emergencyContact.phone
+        ? {
+            name: patientUser.emergencyContact.name || "",
+            phone: patientUser.emergencyContact.phone || "",
+            relation: patientUser.emergencyContact.relation || "",
+          }
+        : null);
+
+    // Look up hospital name if a hospital was selected
+    let hospitalName = "";
+    if (hospital) {
+      try {
+        const hospDoc = await Hospital.findById(hospital);
+        if (hospDoc) hospitalName = hospDoc.name;
+      } catch (_) {}
+    }
+
+    // Create the emergency request
     const emergency = await EmergencyRequest.create({
       patient,
       hospital: hospital || null,
@@ -35,11 +62,60 @@ const createEmergency = async (req, res) => {
         type: "Point",
         coordinates: patientLocation.coordinates,
       },
+      emergencyContact: activeEmergencyContact || undefined,
     });
+
+    // Send SMS notification to emergency contact
+    let smsNotification = {
+      sent: false,
+      status: "skipped",
+      reason: "No emergency contact phone registered for this patient",
+    };
+
+    if (activeEmergencyContact && activeEmergencyContact.phone) {
+      try {
+        const smsResult = await sendEmergencySms({
+          patientUser,
+          emergency,
+          emergencyContact: activeEmergencyContact,
+          hospitalName,
+          coordinates: patientLocation.coordinates,
+        });
+
+        smsNotification = smsResult;
+
+        // Persist notification status directly on the emergency record
+        emergency.smsNotification = {
+          sent: smsResult.sent || false,
+          status: smsResult.status || "not_sent",
+          phone: smsResult.phone || activeEmergencyContact.phone,
+          recipientName: smsResult.recipientName || activeEmergencyContact.name,
+          messageSid: smsResult.messageSid || null,
+          sentAt: smsResult.sentAt || new Date(),
+          error: smsResult.error || null,
+        };
+        await emergency.save();
+      } catch (smsError) {
+        console.error("SMS notification dispatch failed:", smsError);
+        smsNotification = {
+          sent: false,
+          status: "failed",
+          error: smsError.message,
+        };
+      }
+    } else {
+      console.warn("⚠️ No emergency contact phone registered for patient:", patient);
+    }
+
+    // Populate patient and hospital for consistent frontend response
+    const populatedEmergency = await EmergencyRequest.findById(emergency._id)
+      .populate("patient", "-password")
+      .populate("hospital");
 
     res.status(201).json({
       message: "Emergency request created successfully",
-      emergency,
+      emergency: populatedEmergency || emergency,
+      smsNotification,
     });
   } catch (error) {
     console.error("CREATE EMERGENCY ERROR:", error);

@@ -11,6 +11,7 @@ const ambulanceRoutes = require("./routes/ambulanceRoutes");
 const emergencyRoutes = require("./routes/emergencyRoutes");
 const locationRoutes = require("./routes/locationRoutes");
 const userRoutes = require("./routes/userRoutes");
+const smsRoutes = require("./routes/smsRoutes");
 dotenv.config();
 
 connectDB();
@@ -28,6 +29,7 @@ app.use("/api/ambulances", ambulanceRoutes);
 app.use("/api/emergencies", emergencyRoutes);
 app.use("/api/location", locationRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/sms", smsRoutes);
 app.get("/", (req, res) => {
   res.send("Hospital Emergency Management API is running");
 });

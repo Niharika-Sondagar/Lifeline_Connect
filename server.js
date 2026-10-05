@@ -13,6 +13,7 @@ const ambulanceRoutes = require("./backend/routes/ambulanceRoutes");
 const emergencyRoutes = require("./backend/routes/emergencyRoutes");
 const locationRoutes = require("./backend/routes/locationRoutes");
 const userRoutes = require("./backend/routes/userRoutes");
+const smsRoutes = require("./backend/routes/smsRoutes");
 dotenv.config();
 connectDB();
 
@@ -29,6 +30,7 @@ app.use("/api/ambulances", ambulanceRoutes);
 app.use("/api/emergencies", emergencyRoutes);
 app.use("/api/location", locationRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/sms", smsRoutes);
 app.get("/", (req, res) => {
   res.send("Hospital Emergency Management API is running");
 }); // to check if backend is running or not, if running it will return this message in browser

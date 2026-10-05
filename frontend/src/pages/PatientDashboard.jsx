@@ -14,6 +14,7 @@ import {
 import { getAllHospitals } from "../services/hospitalService";
 import { getNearbyHospitals } from "../services/locationService";
 import { updatePatientProfile } from "../services/authService";
+import { sendTestSms } from "../services/smsService";
 
 import EmergencyStatusTracker from "../components/EmergencyStatusTracker";
 
@@ -34,6 +35,7 @@ import {
   CheckCircle,
   X,
   Hospital,
+  MessageSquare,
 } from "lucide-react"; // importing ICONS
 const EMERGENCY_TYPES = [
   {
@@ -118,6 +120,21 @@ export default function PatientDashboard() {
   const [contactRelation, setContactRelation] = useState(
     user?.emergencyContact?.relation || "",
   );
+
+  const [testingSms, setTestingSms] = useState(false);
+  const [smsFeedback, setSmsFeedback] = useState({ type: "", message: "" });
+
+  useEffect(() => {
+    if (user?.emergencyContact) {
+      setContactName(user.emergencyContact.name || "");
+      setContactPhone(user.emergencyContact.phone || "");
+      setContactRelation(user.emergencyContact.relation || "");
+    }
+  }, [
+    user?.emergencyContact?.phone,
+    user?.emergencyContact?.name,
+    user?.emergencyContact?.relation,
+  ]);
 
   const fetchData = async () => {
     console.log("🚑 PATIENT fetchData() RUNNING");
@@ -334,11 +351,35 @@ export default function PatientDashboard() {
           // [longitude, latitude]
           coordinates: emergencyCoordinates,
         },
+
+        emergencyContact:
+          contactPhone || user?.emergencyContact?.phone
+            ? {
+                name: contactName || user?.emergencyContact?.name || "",
+                phone: contactPhone || user?.emergencyContact?.phone || "",
+                relation:
+                  contactRelation || user?.emergencyContact?.relation || "",
+              }
+            : undefined,
       };
 
-      await createEmergency(payload);
+      const res = await createEmergency(payload);
 
-      setSuccessMsg("🚨 SOS Emergency Dispatched! Contacting emergency teams.");
+      let msg = "🚨 SOS Emergency Dispatched! Contacting emergency teams.";
+      if (res?.smsNotification?.sent) {
+        const contactLabel =
+          res.smsNotification.recipientName || "Emergency Contact";
+        const phoneLabel = res.smsNotification.phone || "";
+        if (res.smsNotification.simulated) {
+          msg += ` • 📱 SMS alert simulated in server console for ${contactLabel} (${phoneLabel}).`;
+        } else {
+          msg += ` • 📱 SMS alert sent to ${contactLabel} (${phoneLabel}).`;
+        }
+      } else if (res?.smsNotification?.status === "skipped") {
+        msg += " • (Note: No emergency contact phone registered to send SMS alert).";
+      }
+
+      setSuccessMsg(msg);
 
       setDescription("");
 
@@ -398,6 +439,43 @@ export default function PatientDashboard() {
         "Failed to update emergency contact: " +
           (err.response?.data?.message || err.message),
       );
+    }
+  };
+
+  const handleTestSms = async () => {
+    const targetPhone = contactPhone || user?.emergencyContact?.phone;
+    if (!targetPhone) {
+      setSmsFeedback({
+        type: "error",
+        message: "Please add an emergency contact phone number first.",
+      });
+      return;
+    }
+    setTestingSms(true);
+    setSmsFeedback({ type: "", message: "" });
+    try {
+      const res = await sendTestSms({
+        phone: targetPhone,
+        name:
+          contactName || user?.emergencyContact?.name || "Emergency Contact",
+        relation:
+          contactRelation || user?.emergencyContact?.relation || "Contact",
+        patientId: user?.id,
+      });
+      setSmsFeedback({
+        type: "success",
+        message: res.message || `Test SMS dispatched to ${targetPhone}!`,
+      });
+    } catch (err) {
+      setSmsFeedback({
+        type: "error",
+        message:
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to send test SMS.",
+      });
+    } finally {
+      setTestingSms(false);
     }
   };
 
@@ -719,6 +797,77 @@ export default function PatientDashboard() {
                   }}
                 >
                   {new Date(activeEmergency.requestedAt).toLocaleDateString()}
+                </span>
+              </div>
+
+              {/* Emergency Contact SMS Alert */}
+              <div
+                style={{
+                  background:
+                    activeEmergency.smsNotification?.sent
+                      ? "#f0fdf4"
+                      : activeEmergency.smsNotification?.status === "skipped"
+                        ? "#fffbeb"
+                        : "var(--bg-muted)",
+                  padding: "1rem",
+                  borderRadius: "var(--radius-md)",
+                  border:
+                    activeEmergency.smsNotification?.sent
+                      ? "1px solid #bbf7d0"
+                      : activeEmergency.smsNotification?.status === "skipped"
+                        ? "1px solid #fde68a"
+                        : "none",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "var(--text-muted)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.35rem",
+                  }}
+                >
+                  <MessageSquare size={13} />
+                  Emergency Contact SMS
+                </span>
+
+                <strong
+                  style={{
+                    display: "block",
+                    fontSize: "1rem",
+                    color:
+                      activeEmergency.smsNotification?.sent
+                        ? "#15803d"
+                        : activeEmergency.smsNotification?.status === "skipped"
+                          ? "#b45309"
+                          : "var(--navy)",
+                    marginTop: "0.25rem",
+                  }}
+                >
+                  {activeEmergency.smsNotification?.sent
+                    ? activeEmergency.smsNotification?.status === "simulated"
+                      ? "SMS Alert Simulated"
+                      : "SMS Alert Dispatched"
+                    : activeEmergency.smsNotification?.status === "skipped"
+                      ? "No Contact Phone"
+                      : activeEmergency.smsNotification?.status === "failed"
+                        ? "SMS Delivery Failed"
+                        : activeEmergency.emergencyContact?.phone
+                          ? "SMS Dispatched"
+                          : "Not Dispatched"}
+                </strong>
+
+                <span
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  {activeEmergency.emergencyContact?.name ||
+                  activeEmergency.smsNotification?.recipientName
+                    ? `${activeEmergency.emergencyContact?.name || activeEmergency.smsNotification?.recipientName} (${activeEmergency.emergencyContact?.phone || activeEmergency.smsNotification?.phone})`
+                    : "No emergency contact set"}
                 </span>
               </div>
             </div>
@@ -1228,6 +1377,124 @@ export default function PatientDashboard() {
                       {user?.emergencyContact?.relation || "Not specified"}
                     </span>
                   </div>
+
+                  {/* SMS Notifications Info & Test */}
+                  {user?.emergencyContact?.phone ? (
+                    <div
+                      style={{
+                        marginTop: "1.25rem",
+                        padding: "0.75rem",
+                        background: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                        borderRadius: "var(--radius-md)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.4rem",
+                          color: "#166534",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <CheckCircle size={15} color="#16a34a" />
+                        <span>SMS Emergency Alerts Active</span>
+                      </div>
+                      <p
+                        style={{
+                          fontSize: "0.78rem",
+                          color: "#15803d",
+                          margin: "0.35rem 0 0.5rem 0",
+                          lineHeight: "1.3",
+                        }}
+                      >
+                        When you dispatch an emergency SOS, an SMS alert with your live GPS location link will be sent automatically to this number.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={handleTestSms}
+                        disabled={testingSms}
+                        className="btn-secondary"
+                        style={{
+                          width: "100%",
+                          justifyContent: "center",
+                          fontSize: "0.78rem",
+                          padding: "0.4rem 0.6rem",
+                          gap: "0.4rem",
+                        }}
+                      >
+                        <MessageSquare size={13} />
+                        <span>
+                          {testingSms
+                            ? "Sending Test SMS..."
+                            : "Send Test SMS to Contact"}
+                        </span>
+                      </button>
+
+                      {smsFeedback.message && (
+                        <div
+                          style={{
+                            marginTop: "0.5rem",
+                            padding: "0.45rem 0.6rem",
+                            borderRadius: "4px",
+                            fontSize: "0.75rem",
+                            background:
+                              smsFeedback.type === "error"
+                                ? "#fee2e2"
+                                : "#dcfce7",
+                            color:
+                              smsFeedback.type === "error"
+                                ? "#991b1b"
+                                : "#166534",
+                            border: `1px solid ${
+                              smsFeedback.type === "error"
+                                ? "#fca5a5"
+                                : "#86efac"
+                            }`,
+                          }}
+                        >
+                          {smsFeedback.message}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        marginTop: "1.25rem",
+                        padding: "0.75rem",
+                        background: "#fffbeb",
+                        border: "1px solid #fde68a",
+                        borderRadius: "var(--radius-md)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.4rem",
+                          color: "#92400e",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <AlertTriangle size={15} color="#d97706" />
+                        <span>No Phone Number Configured</span>
+                      </div>
+                      <p
+                        style={{
+                          fontSize: "0.78rem",
+                          color: "#b45309",
+                          margin: "0.35rem 0 0 0",
+                          lineHeight: "1.3",
+                        }}
+                      >
+                        Click &ldquo;Edit&rdquo; above and add an emergency contact phone number to enable automated SMS notifications during an SOS dispatch.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

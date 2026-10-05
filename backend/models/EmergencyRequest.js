@@ -83,6 +83,56 @@ const emergencyRequestSchema = new mongoose.Schema(
         completedAt: {
             type: Date,
             default: null
+        },
+
+        emergencyContact: {
+            name: {
+                type: String,
+                trim: true,
+                default: ""
+            },
+            phone: {
+                type: String,
+                trim: true,
+                default: ""
+            },
+            relation: {
+                type: String,
+                trim: true,
+                default: ""
+            }
+        },
+
+        smsNotification: {
+            sent: {
+                type: Boolean,
+                default: false
+            },
+            status: {
+                type: String,
+                enum: ["not_sent", "sent", "failed", "simulated", "skipped"],
+                default: "not_sent"
+            },
+            phone: {
+                type: String,
+                default: ""
+            },
+            recipientName: {
+                type: String,
+                default: ""
+            },
+            messageSid: {
+                type: String,
+                default: null
+            },
+            sentAt: {
+                type: Date,
+                default: null
+            },
+            error: {
+                type: String,
+                default: null
+            }
         }
     },
     {
