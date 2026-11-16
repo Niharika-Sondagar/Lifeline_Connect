@@ -18,10 +18,10 @@ function Login() {
   const [loading, setLoading] = useState(false);
 
   // Forgot Password Modal States
-  const [showForgotModal, setShowForgotModal] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotMessage, setForgotMessage] = useState("");
-  const [forgotLoading, setForgotLoading] = useState(false);
+  // const [showForgotModal, setShowForgotModal] = useState(false);
+  // const [forgotEmail, setForgotEmail] = useState("");
+  // const [forgotMessage, setForgotMessage] = useState("");
+  // const [forgotLoading, setForgotLoading] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -172,9 +172,7 @@ function Login() {
                   setShowForgotModal(true);
                   setForgotMessage("");
                 }}
-              >
-                Forgot Password?
-              </button>
+              ></button>
             </div>
 
             <div className="password-input-wrapper">
@@ -218,8 +216,8 @@ function Login() {
           Don't have an account? <Link to="/register">Register</Link>
         </p>
       </div>
-
-      {/* Forgot Password Modal Popup */}
+      {/* 
+      Forgot Password Modal Popup
       {showForgotModal && (
         <div className="modal-backdrop">
           <div className="modal-card">
@@ -269,7 +267,7 @@ function Login() {
             </form>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }

@@ -543,10 +543,6 @@ export default function Home() {
             </span>
           </div>
 
-          <div style={{ fontSize: "0.9rem" }}>
-            Emergency Response Portal • Connected to National Health Services
-          </div>
-
           <div style={{ display: "flex", gap: "1.5rem" }}>
             <Link
               to="/login"
