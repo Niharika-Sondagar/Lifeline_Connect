@@ -361,8 +361,7 @@ Here is a list of variables required to configure the application:
 **Your Name**
 
 - GitHub: [Niharika-Sondagar](https://github.com/Niharika-Sondagar)
-- LinkedIn: [](https://linkedin.com/in/your-profile)
-- Email: `ngirishbhaisondagar026@gmail.com`
+- Deployed Version:
 
 ---
 
