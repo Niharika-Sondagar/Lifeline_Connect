@@ -103,7 +103,7 @@ In medical emergencies, every second counts. Traditional coordination between pa
 | **Patient Dashboard after accepting request by hospital**<br>Patient tracking live GPS location of ambulace | ![Patient page](screenshots/patient1.png)<br><sub>_Figure 5: Patient's reuest status and live ambulance tracker_</sub>                         |
 | **Notification to Emergency contact**<br>Send Emergency notification of patient to emergency contacts       | ![Patient page](screenshots/emergencyNotification.png)<br><sub>_Figure 6: Patient's emergency notification to emergency contact_</sub>         |
 | **Hospital Emergency Dashboard**<br>Manage incoming requests & dispatch                                     | ![Hospital Dashboard](screenshots/hospital.png)<br><sub>_Figure 7: Hospital live queue and ambulance dispatch_</sub>                           |
-| **Ambulance Driver & Live Map**<br>GPS tracking & trip progress                                             | ![Ambulance Tracking](screenshots/Driver.png)<br><sub>_Figure 8: Live GPS location tracking and route management_</sub>                        |
+| **Ambulance Driver & Live Map**<br>GPS tracking & trip progress                                             | ![Ambulance Tracking](screenshots/driver.png)<br><sub>_Figure 8: Live GPS location tracking and route management_</sub>                        |
 | **Admin Dashboard**<br>System overview & fleet stats                                                        | ![Admin Dashboard](screenshots/admin.png)<br><sub>_Figure 9: Admin analytics and resource monitoring_</sub>                                    |
 
 ---
